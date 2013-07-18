@@ -1,0 +1,30 @@
+.searchResults {
+  margin: 0;
+  padding: 5px 0;
+  position: absolute;
+  background: #fff;
+  border-radius: 3px;
+  border: 1px solid #ccc;
+  margin-left: -1px;
+  z-index: 100;
+}
+
+.searchResults li {
+  margin: 0;
+}
+
+.searchResults .active a{
+    color:#ffffff;
+    text-decoration:none;
+    background-color:#08c;
+}
+
+.searchResults li a {
+  text-align: left;
+  display: block;
+  padding: 3px 20px;
+  clear: both;
+  line-height: 20px;
+  color: #333333;
+  white-space: nowrap;
+}
