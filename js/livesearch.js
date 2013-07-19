@@ -1,3 +1,4 @@
+(function(){
 $.fn.livesearch = function(obj)
 {
     function exists(e)
@@ -39,13 +40,14 @@ $.fn.livesearch = function(obj)
             currentlyActive = 0;
 
         obj.data = sortObject(obj.data, "name");
+        if(obj.data[0]==="") obj.data = obj.data.slice(1);
+
         arr = obj.data.slice(0);
 
         input.on('keyup',function(event)
         {        
             if(storedValue === this.value)
             {
-                console.log("exiting");
                 return;
             }
             if(event.keyCode === UP || event.keyCode === DOWN || event.keyCode === ENTER) return;
@@ -71,7 +73,7 @@ $.fn.livesearch = function(obj)
                     arr = obj.data.slice(0);
                 }
                 //when deleting one character
-                else if(this.value.length === storedValue.length-1 && this.value === storedValue.substr(storedValue.length-2, 1) && arrcache.length > 1)
+                else if(this.value.length === storedValue.length-1 && arrcache.length>1 && this.value === storedValue.substr(0, storedValue.length-1))
                 {
                     arrcache.splice(arrcache.length-1, 1);
                     arr = arrcache[arrcache.length-1].slice(0);
@@ -91,7 +93,6 @@ $.fn.livesearch = function(obj)
                 arrcache = [];
             }
             storedValue = this.value;
-
 
             //exit if no results
             if( (results == 0) || event.keyCode === ESCAPE || (event.keyCode === BACKSPACE && !exists(this.value))) 
@@ -310,5 +311,6 @@ $.fn.livesearch = function(obj)
             }
         }
         return newHaystack;
-    }   
+    }
 }
+})();
