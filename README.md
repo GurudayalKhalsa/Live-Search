@@ -5,7 +5,7 @@ A javascript-based live search implementation (Requires jQuery)
 
 ###Demo: 
 
-See demo folder or http://gurudayalkhalsa.github.io/live-search/
+See demo folder
 
 ###Usage: 
 
