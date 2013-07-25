@@ -5,7 +5,7 @@ A javascript-based live search implementation (Requires jQuery)
 
 ###Demo: 
 
-See demo folder
+This repo, app.js.
 
 ###Usage: 
 
