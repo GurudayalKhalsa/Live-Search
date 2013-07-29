@@ -14,8 +14,16 @@ include the livesearch.js and livesearch.css in your site's css.
 
     $(".search-field").livesearch({
         data: "text.json",
-
+        maxResults: 20,
+        type: "normal",
+        onload:function(obj)
+        {
+            obj.doSomething();
+        },
+        format:"<a href='#{title}>{title}</a>'>",
     });
+
+###Parameters:
 
 - "data" is the data to saerch through. This can either be an array, or a JSON file of items. This entry is mandatory.
 
@@ -36,3 +44,5 @@ for each item in array, the output would be:
 Default format is 
 
     <a href='#{title}>{title}</a>'>
+
+- "onload" calls the callback function passed in when the search results are displayed. The callback function is passed the jQuery object of the search results DOM object as a parameter.

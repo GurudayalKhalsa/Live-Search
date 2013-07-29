@@ -134,7 +134,7 @@ $.fn.livesearch = function(obj)
                 currentlyActive = $(this).index();
             });    
 
-            if(exists(obj.onload)) obj.onload();
+            if(exists(obj.onload)) obj.onload($(".searchResults"));
 
             if(exists($(".searchResults")) && !exists($(".searchResults li.active")))
             {
