@@ -44,7 +44,6 @@ $.fn.livesearch = function(obj)
         if(obj.structure==="trie")
         {
             obj.data = new Trie(obj.data.slice(0));
-            trie = obj.data;
         }
         else
         {
@@ -63,7 +62,6 @@ $.fn.livesearch = function(obj)
 
             if(obj.structure === "trie" && exists(this.value)) 
             {
-                trie = obj.data;
                 var results = arr = obj.data.get(this.value);
             }
             else
