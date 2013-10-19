@@ -1,3 +1,5 @@
+//JS Livesearch/Autocomplete
+
 (function(){
 $.fn.livesearch = function(obj)
 {
@@ -14,7 +16,7 @@ $.fn.livesearch = function(obj)
     //load data from file if string (must be json format)
     if(typeof obj.data === "string")
     {
-        $.get(obj.data, function(data)
+        $.getJSON(obj.data, function(data)
         {
             obj.data = data;
             doLivesearch();
@@ -27,7 +29,7 @@ $.fn.livesearch = function(obj)
 
     function doLivesearch()
     {
-        var arr = obj.data.slice(0),
+        var arr = obj.data,
             arrcache = [],
             storedValue = input[0].value,
             maxResults = obj.maxResults||100,
@@ -39,60 +41,78 @@ $.fn.livesearch = function(obj)
             ESCAPE = 27,
             currentlyActive = 0;
 
-        obj.data = sortObject(obj.data, "name");
-        if(obj.data[0]==="") obj.data = obj.data.slice(1);
+        if(obj.structure==="trie")
+        {
+            obj.data = new Trie(obj.data.slice(0));
+            trie = obj.data;
+        }
+        else
+        {
+            arr = obj.data.slice(0);
+            obj.data = sortObject(obj.data, "name");
+            if(obj.data[0]==="") obj.data = obj.data.slice(1);
+            arr = obj.data.slice(0);
+        }
 
-        arr = obj.data.slice(0);
+        
 
         input.on('keyup',function(event)
         {        
-            if(storedValue === this.value)
-            {
-                return;
-            }
+
             if(event.keyCode === UP || event.keyCode === DOWN || event.keyCode === ENTER) return;
-            if(exists(this.value) && storedValue !== this.value)
+
+            if(obj.structure === "trie" && exists(this.value)) 
             {
-                //if typing forwards and last type is nothing
-                if(!exists(storedValue) && this.value.length > 0)
-                {
-                    var results = findMatches(this.value, obj.data, type);
-                    arr = obj.data.slice(0);
-                    arrcache.push(results.slice(0));
-                }
-                //if typing forwards
-                else if(this.value.length > storedValue.length)
-                {
-                    var results = arr = findMatches(this.value, arr, type);
-                    arrcache.push(results.slice(0));
-                }
-                //when deleting multiple text, or when cache cleared and deleting (likely pressed back button)
-                else if((this.value.length < storedValue.length-1) || (this.value.length < storedValue.length && arrcache.length < this.value.length))
-                {
-                    var results = findMatches(this.value, obj.data, type);
-                    arr = obj.data.slice(0);
-                }
-                //when deleting one character
-                else if(this.value.length === storedValue.length-1 && arrcache.length>1 && this.value === storedValue.substr(0, storedValue.length-1))
-                {
-                    arrcache.splice(arrcache.length-1, 1);
-                    arr = arrcache[arrcache.length-1].slice(0);
-                    var results = arr.slice(0);
-                }
-                //anything else, restart
-                else
-                {
-                    arrcache = [];
-                    var results = findMatches(this.value, obj.data, type);
-                    arr = obj.data.slice(0);
-                    arrcache.push(results.slice(0));
-                }
+                trie = obj.data;
+                var results = arr = obj.data.get(this.value);
             }
             else
             {
-                arrcache = [];
+                //get results
+                if(exists(this.value) && storedValue !== this.value)
+                {
+
+                    //if typing forwards and last type is nothing
+                    if(!exists(storedValue) && this.value.length > 0)
+                    {
+                        var results = findMatches(this.value, obj.data, type);
+                        arr = obj.data.slice(0);
+                        arrcache.push(results.slice(0));
+                    }
+                    //if typing forwards
+                    else if(this.value.length > storedValue.length)
+                    {
+                        var results = arr = findMatches(this.value, arr, type);
+                        arrcache.push(results.slice(0));
+                    }
+                    //when deleting multiple text, or when cache cleared and deleting (likely pressed back button)
+                    else if((this.value.length < storedValue.length-1) || (this.value.length < storedValue.length && arrcache.length < this.value.length))
+                    {
+                        var results = findMatches(this.value, obj.data, type);
+                        arr = obj.data.slice(0);
+                    }
+                    //when deleting one character
+                    else if(this.value.length === storedValue.length-1 && arrcache.length===this.value.length+1 && arrcache.length>1 && this.value === storedValue.substr(0, storedValue.length-1))
+                    {
+                        arrcache.splice(arrcache.length-1, 1);
+                        arr = arrcache[arrcache.length-1].slice(0);
+                        var results = arr.slice(0);
+                    }
+                    //anything else, restart
+                    else
+                    {
+                        arrcache = [];
+                        var results = findMatches(this.value, obj.data, type);
+                        arr = obj.data.slice(0);
+                        arrcache.push(results.slice(0));
+                    }
+                }
+                else
+                {
+                    arrcache = [];
+                }
+                storedValue = this.value;
             }
-            storedValue = this.value;
 
             //exit if no results
             if( (results == 0) || event.keyCode === ESCAPE || (event.keyCode === BACKSPACE && !exists(this.value))) 
@@ -102,8 +122,9 @@ $.fn.livesearch = function(obj)
             }
 
             var elem = $(this);
-
             var html = "";
+
+            //organize and display results
             for (i in results)
             {
                 if(i > maxResults) break;
@@ -125,14 +146,24 @@ $.fn.livesearch = function(obj)
             }
             else if(exists($(".searchResults")) && exists(results))
             {
-                $(".searchResults")[0].innerHTML=html;
+                $(".searchResults").show()[0].innerHTML=html;
             }    
-            $(".searchResults li").hover(function()
+
+            var oldMouseY = 0;
+
+            //add functionality to results div
+
+            $(".searchResults li").mouseenter(function(e)
             {
+                //make sure when scrolling with arrow keys, that no sudden hovers when scrolling into view
+                if(e.clientY === oldMouseY) return;
+                oldMouseY = e.clientY;
+
                 $(".searchResults li.active").removeClass("active");
-                $(this).toggleClass("active");
+                $(this).addClass("active");
                 currentlyActive = $(this).index();
-            });    
+                setValue($(".searchResults li.active"));
+            });  
 
             if(exists(obj.onload)) obj.onload($(".searchResults"));
 
@@ -142,12 +173,16 @@ $.fn.livesearch = function(obj)
             }
         });
 
+        //allow up/down arrows to control current active result, enter to submit
         input.on('keydown',function(event)
         {
             var li = $(".searchResults").find("li");
 
             if(event.keyCode === ENTER && exists($(".searchResults")))
             {
+                //set value to first result
+                setValue($(".searchResults li.active"));
+
                 var a = $(li[currentlyActive]).find("a")[0];
                 if(exists(a.href)) window.location.href=a.href;
             }
@@ -157,7 +192,8 @@ $.fn.livesearch = function(obj)
                 $(".searchResults li.active").removeClass("active");
                 if(currentlyActive<li.length-1)currentlyActive++;
                 $(li[currentlyActive]).toggleClass("active");
-                $(li[currentlyActive])[0].scrollIntoView();
+                if(!activeIsInParent())$(li[currentlyActive])[0].scrollIntoView(false);
+                setValue($(".searchResults li.active"));
             }
 
             else if(event.keyCode === UP && exists($(".searchResults")))
@@ -165,9 +201,21 @@ $.fn.livesearch = function(obj)
                 $(".searchResults li.active").removeClass("active");
                 if(currentlyActive>0)currentlyActive--;
                 $(li[currentlyActive]).toggleClass("active");
-                $(li[currentlyActive])[0].scrollIntoView();
+                if(!activeIsInParent())$(li[currentlyActive])[0].scrollIntoView(true);
+                setValue($(".searchResults li.active"));
             }
         });
+
+        function activeIsInParent()
+        {
+            //if active top > results top and active bottom < results bottom
+            var parentTop    = $(".searchResults").offset().top,
+                childTop     = $(".searchResults li.active").offset().top,
+                parentHeight = $(".searchResults").outerHeight(),
+                childHeight  = $(".searchResults li.active").outerHeight();
+
+            return ( parentTop < childTop && (parentTop+parentHeight) > (childTop+childHeight) );
+        }
 
         window.onclick=function(e)
         {
@@ -184,12 +232,18 @@ $.fn.livesearch = function(obj)
         };
     }
 
+    function setValue(el)
+    {
+        var value = el.find("[data-livesearch-value]").attr("data-livesearch-value")||el.text();
+        input[0].value = value;
+    }
+
     function getFormat(currentData)
     {
-        if(!exists(obj.format) && !exists(currentData.name)) return "<a href='"+currentData+"'>"+currentData+"</a>";
+        if(!exists(obj.format) && !exists(currentData.name)) return "<a data-livesearch-value='"+currentData+"'>"+currentData+"</a>";
         else if(!exists(obj.format) && exists(currentData.name))
         {
-            return "<a href='"+currentData.name+"'>"+currentData.name+"</a>";
+            return "<a data-livesearch-value='"+currentData.name+"'>"+currentData.name+"</a>";
         }
         else if(exists(obj.format) && !exists(currentData.name))
         {
@@ -312,5 +366,13 @@ $.fn.livesearch = function(obj)
         }
         return newHaystack;
     }
+    /* Trie.js
+     * A simple Trie implementation written in JS, with robust built in functions for managing strings
+     * Licensed under the MIT licence
+     * Created by Gurudayal Khalsa
+    */
+    function Trie(r){var e={};var t="|";this.getObject=function(r){if(!r)return e;var t="";var f=e;for(var n=0;n<r.length;n++){var i=r[n];if(f[i])f=f[i];else return false}if(f!==e){return f}return false};this.get=function(r){if(typeof r==="object"){var i={};for(var u in r)i[r[u]]=this.get(r[u]);return i}if(typeof r!=="string"&&r!==undefined)return[];var a=this.getObject(r);if(typeof r==="string"&&!a)return[];a=a||e;var i=[];function s(r){if(r[t]&&!i[r[t]])i.push(r[t]);if(f(r))for(var e in n(r))s(r[e]);else return}s(a);return i};this.insert=function(r){if(typeof r==="object"){for(var f=0;f<r.length;f++)this.insert(r[f]);return true}if(typeof r!=="string")return false;var n="";var i=e;for(var f=0;f<r.length;f++){var u=r[f];if(!i[u]&&n!==r)i[u]={};n+=u;if(n===r){i[u][t]=r}i=i[u]}return true};this.remove=function(r,n){if(typeof r==="object"){for(var a in r)this.remove(r[a]);return true}if(typeof r!=="string")return false;var n=n||false;var s=this.getObject(r);if(typeof r==="string"&&this.getObject(r)===false||!this.has(r)&&n===false&&s[t]!==r)return false;if(s[t]&&s[t]===r)delete s[t];var o=u(s,r,e);if(!this.has(r)&&n===true&&o[r]){delete o[r];return true}else if(n===false)return false;if(f(s)){if(n===true)for(var a in s)delete s[a];if(i(o)===1&&o[r[r.length-1]])return true}for(var a=r.length-1;a>=0;a--){var v=r[a];var o=u(s,r,e);if(i(o)>=1&&o[v]){delete o[v];if(i(o)>=1)return true}s=o}return true};this.has=function(r){if(typeof r==="object"){var e={};for(var f in r)e[r[f]]=this.has(r[f]);return e}if(typeof r!=="string")return false;var n=this.getObject(r);if(typeof r==="string"&&!n)return false;if(n[t]&&n[t]===r)return true;return false};this.insert(r);function f(r){if(r.length===0)return false;for(var e in r)if(typeof r[e]==="object")return true;return false}function n(r){var e={};for(var f in r){if(r[f]!==t)e[f]=r[f]}return e}function i(r){var e=0;for(var t in r){e++}return e}function u(r,e,t){var f="";var n=t;var i=[];for(var u=0;u<e.length;u++){var a=e[u];if(n[a]){i.push(n);n=n[a]}else return false;if(n===r)return i.pop()}}function a(r){return JSON.parse(JSON.stringify(r))}}
+
+
 }
 })();
