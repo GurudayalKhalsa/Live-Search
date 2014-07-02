@@ -1,7 +1,9 @@
 Live Search
 =============
 
-A javascript-based live search implementation (Requires jQuery)
+A javascript-based live search implementation (Requires jQuery). Given either a JSON file, an array or an object literal, this script turns an Input element into a typeahead / livesearch implementation. Very fast with massive data sets. Meant to be used with a server-generated or static dataset, e.g. a dictionary. Uses either a Trie structure (has large memory overhead) to search, or just a plain object.
+
+WARNING: This code is likely buggy and has not been tested much, outside of this repo and other repos in my account.
 
 ###Demo: 
 
